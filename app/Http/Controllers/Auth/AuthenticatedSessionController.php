@@ -6,10 +6,13 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use Inertia\Response;
+use App\Enums\RolesEnum;
+use Spatie\Permission\Traits\HasRoles;
 
 class AuthenticatedSessionController extends Controller
 {
@@ -27,13 +30,23 @@ class AuthenticatedSessionController extends Controller
     /**
      * Handle an incoming authentication request.
      */
-    public function store(LoginRequest $request): RedirectResponse
+    public function store(LoginRequest $request): \Symfony\Component\HttpFoundation\Response
     {
         $request->authenticate();
+        Session::regenerate();
+        // $request->session()->regenerate();
 
-        $request->session()->regenerate();
+        // roles regulation section
+        $user = Auth::user();
 
-        return redirect()->intended(route('dashboard', absolute: false));
+        if ($user->hasRole(RolesEnum::Freelancer)){
+            return Inertia::location('/dashboard');
+        } 
+        else if ($user->hasRole(RolesEnum::Client)){
+            return Inertia::location('/dashboard');
+        } 
+        else
+            return redirect()->intended(route('dashboard', absolute: false));
     }
 
     /**
