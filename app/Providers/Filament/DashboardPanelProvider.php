@@ -29,8 +29,8 @@ class DashboardPanelProvider extends PanelProvider
     {
         return $panel
             ->default()
-            ->id('dashboard')
-            ->path('dashboard')
+            ->id('app')
+            ->path('app')
             ->login()
             ->colors([
                 'primary' => Color::Indigo,
@@ -51,7 +51,10 @@ class DashboardPanelProvider extends PanelProvider
             ])
             ->userMenuItems([
                 'profile' => MenuItem::make()
-                    ->label(fn() => Auth::user()->name)
+                    ->label(function () {
+                        $user = Auth::user();
+                        return $user->name . ': ' . $user->getRoleNames()[0];
+                    })
                     ->url('settings/profile')
                     ->icon('heroicon-m-user-circle')
             ])
@@ -68,13 +71,8 @@ class DashboardPanelProvider extends PanelProvider
                 'auth',
                 sprintf(
                     'role:%s|%s',
-                    RolesEnum::Freelancer->value,
-                    RolesEnum::Client->value
+                    RolesEnum::Freelancer->value, RolesEnum::Client->value
                 )
             ]);
-    }
-
-    public function boot(){
-        Model::unguard();
     }
 }

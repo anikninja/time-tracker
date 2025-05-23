@@ -40,10 +40,10 @@ class AuthenticatedSessionController extends Controller
         $user = Auth::user();
 
         if ($user->hasRole(RolesEnum::Freelancer)){
-            return Inertia::location('/dashboard');
+            return Inertia::location('/app');
         } 
         else if ($user->hasRole(RolesEnum::Client)){
-            return Inertia::location('/dashboard');
+            return Inertia::location('/app');
         } 
         else
             return redirect()->intended(route('dashboard', absolute: false));

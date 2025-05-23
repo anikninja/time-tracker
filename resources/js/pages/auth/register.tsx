@@ -14,6 +14,7 @@ type RegisterForm = {
     email: string;
     password: string;
     password_confirmation: string;
+    role: string;
 };
 
 export default function Register() {
@@ -22,6 +23,7 @@ export default function Register() {
         email: '',
         password: '',
         password_confirmation: '',
+        role: '',
     });
 
     const submit: FormEventHandler = (e) => {
@@ -101,10 +103,35 @@ export default function Register() {
                         <InputError message={errors.password_confirmation} />
                     </div>
 
-                    <Button type="submit" className="mt-2 w-full" tabIndex={5} disabled={processing}>
+                    {/* <Button type="submit" className="mt-2 w-full" tabIndex={5} disabled={processing}>
                         {processing && <LoaderCircle className="h-4 w-4 animate-spin" />}
                         Create account
-                    </Button>
+                    </Button> */}
+
+                    <div className="flex gap-4">
+                        <Button
+                            type="submit"
+                            className="mt-2 w-full text-stone-800 hover:text-stone-950 bg-indigo-400 hover:bg-indigo-500 focus-visible:ring-indigo-400"
+                            tabIndex={5}
+                            disabled={processing}
+                            onClick={() => setData('role', 'Freelancer')}
+                        >
+                            {processing && <LoaderCircle className="h-4 w-4 animate-spin" />}
+                            Register As Freelancer
+                        </Button>
+                        <Button
+                            type="submit"
+                            className="mt-2 w-full text-stone-700 hover:text-stone-900 bg-cyan-400 hover:bg-cyan-500 focus-visible:ring-cyan-400"
+                            tabIndex={6}
+                            disabled={processing}
+                            onClick={() => setData('role', 'Client')}
+                        >
+                            {processing && <LoaderCircle className="h-4 w-4 animate-spin" />}
+                            Register As Client
+                        </Button>
+                    </div>
+                    <input type="hidden" name="role" value={data.role} />
+
                 </div>
 
                 <div className="text-muted-foreground text-center text-sm">

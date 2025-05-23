@@ -13,6 +13,7 @@ use Illuminate\Validation\Rules;
 use Inertia\Inertia;
 use Inertia\Response;
 
+
 class RegisteredUserController extends Controller
 {
     /**
@@ -28,12 +29,13 @@ class RegisteredUserController extends Controller
      *
      * @throws \Illuminate\Validation\ValidationException
      */
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request): \Symfony\Component\HttpFoundation\Response
     {
         $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|string|lowercase|email|max:255|unique:'.User::class,
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
+            'role' => 'required|in:Freelancer,Client',
         ]);
 
         $user = User::create([
@@ -42,10 +44,14 @@ class RegisteredUserController extends Controller
             'password' => Hash::make($request->password),
         ]);
 
+        // Assign the role to the user
+        $user->assignRole($request->role);
+
         event(new Registered($user));
 
         Auth::login($user);
 
-        return to_route('dashboard');
+        // return redirect(url('/app'));
+        return Inertia::location('/app');
     }
 }
