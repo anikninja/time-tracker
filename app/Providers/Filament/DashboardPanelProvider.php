@@ -55,7 +55,7 @@ class DashboardPanelProvider extends PanelProvider
                         $user = Auth::user();
                         return $user->name . ': ' . $user->getRoleNames()[0];
                     })
-                    ->url('settings/profile')
+                    ->url('/settings/profile')
                     ->icon('heroicon-m-user-circle')
             ])
             ->middleware([
