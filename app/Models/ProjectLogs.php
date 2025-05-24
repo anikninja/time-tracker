@@ -32,4 +32,47 @@ class ProjectLogs extends Model
     {
         return $this->belongsTo(Project::class);
     }
+
+    public static function startTracking(int $project_id): void
+    {
+        self::create([
+            'project_id' => $project_id,
+            'start_time' => now(),
+            'end_time' => null,
+        ]);
+    }
+
+    public static function stopTracking(int $project_id): void
+    {
+        $log = self::where('project_id', $project_id)
+            ->whereNull('end_time')
+            ->first();
+
+        if ($log) {
+            $log->update([
+                'end_time' => now(),
+                'duration' => $log->start_time->diff(now())->format('%H:%I:%S'),
+            ]);
+        }
+    }
+
+    public static function getDuration($project_id)
+    {
+        return self::where('project_id', $project_id)
+            ->whereNotNull('end_time')
+            ->get()
+            ->reduce(function ($total, $log) {
+                $durationInSeconds = \Carbon\Carbon::parse($log->duration)->secondsSinceMidnight();
+                return $total->addSeconds($durationInSeconds);
+            }, \Carbon\CarbonInterval::hours(0))
+            ->cascade()
+            ->forHumans(['short' => true, 'parts' => 2]);
+    }
+
+    public static function shouldHideTracker($project_id)
+    {
+        return self::where('project_id', $project_id)
+            ->whereNull('end_time')
+            ->exists();
+    }
 }

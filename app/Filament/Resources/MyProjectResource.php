@@ -2,9 +2,10 @@
 
 namespace App\Filament\Resources;
 
-use App\Filament\Resources\UserProjectResource\Pages;
-use App\Filament\Resources\UserProjectResource\RelationManagers;
+use App\Filament\Resources\MyProjectResource\Pages;
+use App\Filament\Resources\MyProjectResource\RelationManagers;
 use App\Models\Project;
+use App\Models\ProjectLogs;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -19,15 +20,16 @@ use App\Models\User;
 use Filament\Infolists;
 use Filament\Infolists\Infolist;
 
-class UserProjectResource extends Resource
+class MyProjectResource extends Resource
 {
     protected static ?string $model = Project::class;
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
-    protected static ?string $navigationLabel = 'All Projects';
-    protected static ?string $slug = 'all-projects';
 
-    protected static ?string $label = 'Featured Projects';
-    static ?int $navigationSort = 2;
+    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationLabel = 'My Projects';
+    protected static ?string $slug = 'my-projects';
+    protected static ?string $label = 'My Project';
+
+    static ?int $navigationSort = 3;
 
     public static function canViewAny(): bool
     {
@@ -36,8 +38,7 @@ class UserProjectResource extends Resource
 
     public static function getNavigationBadge(): ?string
     {
-        $count = Project::query()->where('freelancer_id', null)
-            ->where('status', 'pending')
+        $count = Project::query()->where('freelancer_id', Auth::id())
             ->count();
 
         return $count > 0 ? (string) $count : null;
@@ -56,7 +57,7 @@ class UserProjectResource extends Resource
         $user = Auth::user();
 
         if ($user) {
-            return Project::query()->where('freelancer_id', null)->where('status', 'pending');
+            return Project::query()->where('freelancer_id', Auth::id());
         }
 
         return Project::query()->whereRaw('1 = 0');
@@ -71,57 +72,71 @@ class UserProjectResource extends Resource
                     ->searchable(),
                 Tables\Columns\TextColumn::make('status')
                     ->badge()
-                    ->searchable()
                     ->formatStateUsing(fn($state) => StatusEnum::getLabel($state))
                     ->color(fn($state) => StatusEnum::getColor($state))
                     ->icon(fn($state) => StatusEnum::getIcon($state)),
                 Tables\Columns\TextColumn::make('deadline')
                     ->dateTime()
                     ->sortable(),
-                Tables\Columns\TextColumn::make(name: 'client_id')
+                Tables\Columns\TextColumn::make('client_id')
                     ->label(label: 'Client')
                     ->getStateUsing(function (Project $record) {
                         return User::find($record->client_id)?->name;
                     })
                     ->sortable(),
+                Tables\Columns\TextColumn::make('duration')
+                    ->label('Total Duration')
+                    ->getStateUsing(function (Project $record) {
+                        return ProjectLogs::getDuration($record->id);
+                    }),
             ])
             ->filters([
                 //
             ])
             ->actions([
-                Tables\Actions\ViewAction::make(),
-                Tables\Actions\Action::make('claim')
-                    ->action(function (Project $record) {
-                        $user = Auth::user();
-                        if ($record->freelancer_id === null) {
-                            $record->update([
-                                'status' => StatusEnum::ACTIVE,
-                                'freelancer_id' => $user->id
-                            ]);
-                        }
-                    })
+                Tables\Actions\Action::make(name: 'Start')
+                    ->action(fn(Project $record) => ProjectLogs::startTracking($record->id))
                     ->requiresConfirmation()
-                    ->label('Claim Project')
-                    ->icon('heroicon-o-arrow-down-tray')
-                    ->color('warning')
-                    ->visible(fn(Project $record) => $record->freelancer_id === null),
+                    ->label('Start')
+                    ->button()
+                    ->icon('heroicon-o-play-circle')
+                    ->color('success')
+                    ->hidden(fn(Project $record) => ProjectLogs::shouldHideTracker($record->id) || $record->status === StatusEnum::COMPLETED->value),
+                Tables\Actions\Action::make(name: 'Stop')
+                    ->action(fn(Project $record) => ProjectLogs::stopTracking($record->id))
+                    ->requiresConfirmation()
+                    ->label('Stop')
+                    ->button()
+                    ->icon('heroicon-o-stop-circle')
+                    ->color('danger')
+                    ->hidden(fn(Project $record) => !ProjectLogs::shouldHideTracker($record->id)),
+                Tables\Actions\ActionGroup::make([
+                    Tables\Actions\ViewAction::make(),
+                    Tables\Actions\Action::make(name: 'complete')
+                        ->action(function (Project $record) {
+                            $record->update(['status' => StatusEnum::COMPLETED]);
+                        })
+                        ->requiresConfirmation()
+                        ->label('Complete Project')
+                        ->icon('heroicon-o-check-circle')
+                        ->color('success')
+                        ->hidden(fn(Project $record) => $record->status === StatusEnum::COMPLETED->value),
+                ])->icon('heroicon-o-ellipsis-horizontal')
+                    ->iconPosition('after')
+                    ->color('secondary')
+                    ->tooltip('More Actions'),
+
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\BulkAction::make('claim')
+                    Tables\Actions\BulkAction::make(name: 'complete')
                         ->action(function (array $records) {
-                            $user = Auth::user();
                             foreach ($records as $record) {
-                                if ($record->freelancer_id === null) {
-                                    $record->update([
-                                        'status' => StatusEnum::ACTIVE,
-                                        'freelancer_id' => $user->id
-                                    ]);
-                                }
+                                $record->update(['status' => StatusEnum::COMPLETED]);
                             }
                         })
                         ->requiresConfirmation()
-                        ->label('Claim Project'),
+                        ->label('Complete Project'),
                 ]),
             ]);
     }
@@ -139,19 +154,22 @@ class UserProjectResource extends Resource
                                 ->label('Project Description'),
                             Infolists\Components\TextEntry::make('status')
                                 ->label('Status')
-                                ->formatStateUsing(fn($state) => ucfirst($state))
                                 ->badge()
                                 ->formatStateUsing(fn($state) => StatusEnum::getLabel($state))
                                 ->color(fn($state) => StatusEnum::getColor($state))
                                 ->icon(fn($state) => StatusEnum::getIcon($state)),
-                            Infolists\Components\TextEntry::make(name: 'deadline')
+                            Infolists\Components\TextEntry::make('deadline')
                                 ->label('Deadline')
                                 ->dateTime(),
-                            Infolists\Components\TextEntry::make(name: 'client_id')
+                            Infolists\Components\TextEntry::make('client_id')
                                 ->label('Client')
                                 ->getStateUsing(function (Project $record) {
                                     return User::find($record->client_id)?->name;
                                 }),
+                            Infolists\Components\TextEntry::make('duration')
+                                ->label('Total Duration')
+                                ->getStateUsing(fn(Project $record) => ProjectLogs::getDuration($record->id)),
+
                         ]),
                     ]),
                     Infolists\Components\Section::make([
@@ -165,6 +183,7 @@ class UserProjectResource extends Resource
                 ])->columnSpan(2),
             ]);
     }
+
     public static function getRelations(): array
     {
         return [
@@ -175,9 +194,9 @@ class UserProjectResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListUserProjects::route('/'),
-            'create' => Pages\CreateUserProject::route('/create'),
-            'edit' => Pages\EditUserProject::route('/{record}/edit'),
+            'index' => Pages\ListMyProjects::route('/'),
+            'create' => Pages\CreateMyProject::route('/create'),
+            'edit' => Pages\EditMyProject::route('/{record}/edit'),
         ];
     }
 }

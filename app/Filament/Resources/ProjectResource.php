@@ -23,8 +23,11 @@ class ProjectResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
 
-    protected static ?string $navigationLabel = 'My Projects';
-    protected static ?string $slug = 'my-projects';
+    protected static ?string $navigationLabel = 'Projects';
+
+    protected static ?string $slug = 'projects';
+
+    static ?int $navigationSort = 1;
 
 
     public static function canViewAny(): bool
@@ -64,7 +67,7 @@ class ProjectResource extends Resource
         if ($user) {
             return Project::query()->where('client_id', $user->id);
         }
-        
+
         return Project::query()->whereRaw('1 = 0');
     }
 
@@ -75,8 +78,11 @@ class ProjectResource extends Resource
             ->columns([
                 Tables\Columns\TextColumn::make('title')
                     ->searchable(),
-                    Tables\Columns\TextColumn::make('status')
+                Tables\Columns\TextColumn::make('status')
                     ->badge()
+                    ->formatStateUsing(fn($state) => StatusEnum::getLabel($state))
+                    ->color(fn($state) => StatusEnum::getColor($state))
+                    ->icon(fn($state) => StatusEnum::getIcon($state))
                     ->searchable(),
                 Tables\Columns\TextColumn::make('deadline')
                     ->dateTime()

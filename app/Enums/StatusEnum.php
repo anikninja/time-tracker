@@ -13,30 +13,30 @@ enum StatusEnum: string
         return array_map(fn(self $case) => $case->value, self::cases());
     }
 
-    public function getLabel(): string
+    public static function getLabel(string $state): string
     {
-        return match ($this) {
-            self::ACTIVE => 'Active',
-            self::PENDING => 'Pending',
-            self::COMPLETED => 'Completed',
+        return match ($state) {
+            self::ACTIVE->value => 'Active',
+            self::PENDING->value => 'Pending',
+            self::COMPLETED->value => 'Completed',
         };
     }
 
-    public function getIcon(): string
+    public static function getIcon(string $state): string
     {
-        return match ($this) {
-            self::ACTIVE => 'heroicon-o-check-circle',
-            self::PENDING => 'heroicon-o-clock',
-            self::COMPLETED => 'heroicon-o-check-circle',
+        return match ($state) {
+            self::ACTIVE->value => 'heroicon-o-check-circle',
+            self::PENDING->value => 'heroicon-o-clock',
+            self::COMPLETED->value => 'heroicon-o-check-circle',
         };
     }
 
-    public function getColor(): string
+    public static function getColor(string $state): string
     {
-        return match ($this) {
-            self::ACTIVE => 'info',
-            self::PENDING => 'warning',
-            self::COMPLETED => 'success',
+        return match ($state) {
+            self::ACTIVE->value => 'info',
+            self::PENDING->value => 'warning',
+            self::COMPLETED->value => 'success',
         };
     }
 }

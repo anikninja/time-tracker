@@ -15,10 +15,10 @@ return new class extends Migration
             $table->id();
             $table->foreignId('project_id')->constrained('projects')->onDelete('cascade');
             $table->dateTime('start_time');
-            $table->dateTime('end_time');
-            $table->text('description');
-            $table->string('duration');
-            $table->string('tag');
+            $table->dateTime('end_time')->nullable();
+            $table->text('description')->nullable();
+            $table->time('duration')->default('00:00:00');
+            $table->string('tag')->nullable();
             $table->timestamps();
         });
     }

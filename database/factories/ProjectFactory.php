@@ -20,7 +20,7 @@ class ProjectFactory extends Factory
         return [
             'title' => $this->faker->sentence(),
             'description' => $this->faker->paragraph(),
-            'status' => $this->faker->randomElement(StatusEnum::cases()),
+            'status' => StatusEnum::PENDING,
             'deadline' => $this->faker->dateTimeBetween('now', '+1 year'),
             'client_id' => $this->faker->randomElement([3, 4, 5]), // Assuming you have clients with IDs 3, 4, and 5
         ];

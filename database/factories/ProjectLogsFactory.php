@@ -22,9 +22,7 @@ class ProjectLogsFactory extends Factory
             'start_time' => $startTime = $this->faker->dateTimeBetween('now', '+1 year'),
             'end_time' => $startTime,
             'description' => $this->faker->sentence(),
-            'duration' => function (array $attributes) {
-                return $attributes['end_time']->getTimestamp() - $attributes['start_time']->getTimestamp();
-            },
+            'duration' => '00:00:00',
             'tag' => $this->faker->randomElement(TagEnum::cases()),
         ];
     }
