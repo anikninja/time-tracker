@@ -86,6 +86,8 @@ class MyProjectResource extends Resource
                     ->sortable(),
                 Tables\Columns\TextColumn::make('duration')
                     ->label('Total Duration')
+                    ->badge()
+                    ->color('success')
                     ->getStateUsing(function (Project $record) {
                         return ProjectLogs::getDuration($record->id);
                     }),
@@ -125,7 +127,6 @@ class MyProjectResource extends Resource
                     ->iconPosition('after')
                     ->color('secondary')
                     ->tooltip('More Actions'),
-
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
@@ -158,27 +159,34 @@ class MyProjectResource extends Resource
                                 ->formatStateUsing(fn($state) => StatusEnum::getLabel($state))
                                 ->color(fn($state) => StatusEnum::getColor($state))
                                 ->icon(fn($state) => StatusEnum::getIcon($state)),
-                            Infolists\Components\TextEntry::make('deadline')
-                                ->label('Deadline')
-                                ->dateTime(),
-                            Infolists\Components\TextEntry::make('client_id')
-                                ->label('Client')
-                                ->getStateUsing(function (Project $record) {
-                                    return User::find($record->client_id)?->name;
-                                }),
+
                             Infolists\Components\TextEntry::make('duration')
                                 ->label('Total Duration')
-                                ->getStateUsing(fn(Project $record) => ProjectLogs::getDuration($record->id)),
-
+                                ->badge()
+                                ->color('success')
+                                ->getStateUsing(function (Project $record) {
+                                    $duration = ProjectLogs::getDuration($record->id);
+                                    if (ProjectLogs::isTracking($record->id)) {
+                                        $liveDuration = ProjectLogs::getLiveDuration($record->id);
+                                        return $duration . " + Tracking ({$liveDuration})";
+                                    }
+                                    return $duration;
+                                }),
                         ]),
                     ]),
                     Infolists\Components\Section::make([
                         Infolists\Components\TextEntry::make('created_at')
-                            ->label('Created At')
                             ->dateTime(),
-                        Infolists\Components\TextEntry::make('updated_at')
-                            ->label('Updated At')
-                            ->dateTime(),
+                        Infolists\Components\TextEntry::make('deadline')
+                            ->label('Deadline')
+                            ->color('danger')
+                            ->getStateUsing(fn(Project $record) => $record->deadline->format('F j, Y, g:i a')),
+                        Infolists\Components\TextEntry::make('client_id')
+                            ->label('Client')
+                            ->getStateUsing(function (Project $record) {
+                                return User::find($record->client_id)?->name;
+                            }),
+
                     ])->grow(false),
                 ])->columnSpan(2),
             ]);
