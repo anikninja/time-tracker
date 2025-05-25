@@ -69,6 +69,23 @@ class ProjectLogs extends Model
             ->forHumans(['short' => true, 'parts' => 2]);
     }
 
+    public static function getSingleDuration($duration)
+    {
+        $log = self::where('duration', $duration)->first();
+
+        if (!$log) {
+            return null;
+        }
+
+        $seconds = $log->end_time
+            ? \Carbon\Carbon::parse($log->duration)->secondsSinceMidnight()
+            : $log->start_time->diffInSeconds(now());
+
+        return \Carbon\CarbonInterval::seconds($seconds)
+            ->cascade()
+            ->forHumans(['short' => true, 'parts' => 2]);
+    }
+
     public static function shouldHideTracker($project_id)
     {
         return self::where('project_id', $project_id)

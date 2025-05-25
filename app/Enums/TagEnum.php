@@ -12,27 +12,27 @@ enum TagEnum: string
         return array_column(self::cases(), 'value');
     }
 
-    public function getLabel(): ?string
+    public static function getLabel($state): ?string
     {
-        return match ($this) {
-            self::BILLABLE => 'Billable',
-            self::NON_BILLABLE => 'Non Billable',
+        return match ($state) {
+            self::BILLABLE->value => 'Billable',
+            self::NON_BILLABLE->value => 'Non Billable',
         };
     }
 
-    public function getIcon(): ?string
+    public static function getIcon($state): ?string
     {
-        return match ($this) {
-            self::BILLABLE => 'heroicon-o-check-circle',
-            self::NON_BILLABLE => 'heroicon-o-x-circle',
+        return match ($state) {
+            self::BILLABLE->value => 'heroicon-o-currency-dollar',
+            self::NON_BILLABLE->value => 'heroicon-o-no-symbol',
         };
     }
 
-    public function getColor(): ?string
+    public static function getColor($state): ?string
     {
-        return match ($this) {
-            self::BILLABLE => 'success',
-            self::NON_BILLABLE => 'danger',
+        return match ($state) {
+            self::BILLABLE->value => 'info',
+            self::NON_BILLABLE->value => 'warning',
         };
     }
 }

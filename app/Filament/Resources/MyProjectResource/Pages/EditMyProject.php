@@ -20,7 +20,7 @@ class EditMyProject extends EditRecord
 
     public function getHeading(): string
     {
-        return 'Project Logs: ' . $this->record->title;
+        return $this->record->title;
     }
 
     public function getSubHeading(): string
