@@ -23,7 +23,6 @@ class MyProjectStats extends BaseWidget
     protected function getStats(): array
     {
         return [
-
             Stat::make(
                 'Available Projects',
                 Project::query()
@@ -55,12 +54,9 @@ class MyProjectStats extends BaseWidget
                 ->color('success'),
 
             Stat::make(
-                'Pending Projects',
-                Project::query()
-                    ->where('status', 'pending')
-                    ->where('freelancer_id', Auth::user()->id)
-                    ->count()
-            )->label('Pending Projects')
+                'Total Working Time',
+                Project::getProjectDurationByUser(Auth::user()->id)
+            )->label('Total Working Time')
                 ->icon('heroicon-o-clock')
                 ->color('warning'),
         ];

@@ -67,6 +67,7 @@ class MyProjectResource extends Resource
     {
         return $table
             ->query(self::getTableQuery())
+            ->defaultSort('created_at', 'desc')
             ->columns([
                 Tables\Columns\TextColumn::make('title')
                     ->searchable(),
@@ -76,7 +77,7 @@ class MyProjectResource extends Resource
                     ->color(fn($state) => StatusEnum::getColor($state))
                     ->icon(fn($state) => StatusEnum::getIcon($state)),
                 Tables\Columns\TextColumn::make('deadline')
-                    ->dateTime()
+                    ->dateTime('M j, Y g:i a')
                     ->sortable(),
                 Tables\Columns\TextColumn::make('client_id')
                     ->label(label: 'Client')
@@ -87,11 +88,19 @@ class MyProjectResource extends Resource
                 Tables\Columns\TextColumn::make('duration')
                     ->label('Total Duration')
                     ->badge()
-                    ->color('success')
+                    ->color(function (Project $record) {
+                        return ProjectLogs::isTracking($record->id) ? 'warning' : 'success';
+                    })
                     ->getStateUsing(function (Project $record) {
-                        return ProjectLogs::getDuration($record->id);
+                        $duration = ProjectLogs::getDuration($record->id);
+                        if (ProjectLogs::isTracking($record->id)) {
+                            $liveDuration = ProjectLogs::getLiveDuration($record->id, true);
+                            return $duration . " + Tracking ({$liveDuration})";
+                        }
+                        return $duration;
                     }),
             ])
+            ->poll('5s')
             ->filters([
                 //
             ])
@@ -113,7 +122,9 @@ class MyProjectResource extends Resource
                     ->color('danger')
                     ->hidden(fn(Project $record) => !ProjectLogs::shouldHideTracker($record->id)),
                 Tables\Actions\ActionGroup::make([
-                    Tables\Actions\ViewAction::make(),
+                    Tables\Actions\ViewAction::make()
+                        ->label('View Details')
+                        ->icon('heroicon-o-eye'),
                     Tables\Actions\Action::make(name: 'complete')
                         ->action(function (Project $record) {
                             $record->update(['status' => StatusEnum::COMPLETED]);
@@ -163,11 +174,13 @@ class MyProjectResource extends Resource
                             Infolists\Components\TextEntry::make('duration')
                                 ->label('Total Duration')
                                 ->badge()
-                                ->color('success')
+                                ->color(function (Project $record) {
+                                    return ProjectLogs::isTracking($record->id) ? 'warning' : 'success';
+                                })
                                 ->getStateUsing(function (Project $record) {
                                     $duration = ProjectLogs::getDuration($record->id);
                                     if (ProjectLogs::isTracking($record->id)) {
-                                        $liveDuration = ProjectLogs::getLiveDuration($record->id);
+                                        $liveDuration = ProjectLogs::getLiveDuration($record->id, true);
                                         return $duration . " + Tracking ({$liveDuration})";
                                     }
                                     return $duration;

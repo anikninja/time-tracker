@@ -100,15 +100,19 @@ class ProjectLogs extends Model
             ->exists();
     }
 
-    public static function getLiveDuration(int $project_id): ?string
+    public static function getLiveDuration(int $project_id, bool $formatted = false): ?string
     {
         $log = self::where('project_id', $project_id)
             ->whereNull('end_time')
             ->first();
 
         if ($log) {
-            $duration = $log->start_time->diff(now());
-            return $duration->format('%H:%I:%S');
+            if ($formatted) {
+                return $log->start_time->diffAsCarbonInterval()->forHumans(['short' => true, 'parts' => 3]);
+            } else {
+                $duration = $log->start_time->diff(now());
+                return $duration->format('%H:%I:%S');
+            }
         }
 
         return null;

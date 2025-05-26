@@ -43,6 +43,9 @@ class EditMyProject extends EditRecord
                 ->color(fn() => $isTracking ? 'warning' : 'success')
                 ->icon(fn() => $isTracking ? 'heroicon-o-clock' : 'heroicon-o-play-circle')
                 ->requiresConfirmation(!$isTracking)
+                ->extraAttributes(fn() => $isTracking ? [
+                    'x-init' => 'setInterval(function() { $el.click(); }, 5000)',
+                ] : [])
                 ->hidden($this->record->status === StatusEnum::COMPLETED->value),
             Actions\Action::make('stopTracking')
                 ->label('Stop Tracking')
