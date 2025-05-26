@@ -16,6 +16,9 @@ use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Support\Facades\Auth;
 use App\Enums\RolesEnum;
 use App\Models\User;
+use App\Models\ProjectLogs;
+use Filament\Infolists;
+use Filament\Infolists\Infolist;
 
 class ProjectResource extends Resource
 {
@@ -93,6 +96,20 @@ class ProjectResource extends Resource
                         return User::find($record->freelancer_id)?->name ?? 'Not Claimed';
                     })
                     ->sortable(),
+                Tables\Columns\TextColumn::make('duration')
+                    ->label('Total Duration')
+                    ->badge()
+                    ->color(function (Project $record) {
+                        return ProjectLogs::isTracking($record->id) ? 'warning' : 'success';
+                    })
+                    ->getStateUsing(function (Project $record) {
+                        $duration = ProjectLogs::getDuration($record->id);
+                        if (ProjectLogs::isTracking($record->id)) {
+                            $liveDuration = ProjectLogs::getLiveDuration($record->id, true);
+                            return $duration . " + Tracking ({$liveDuration})";
+                        }
+                        return $duration;
+                    }),
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
@@ -102,6 +119,7 @@ class ProjectResource extends Resource
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
+            ->poll('5s')
             ->filters([
                 //
             ])
@@ -118,7 +136,7 @@ class ProjectResource extends Resource
     public static function getRelations(): array
     {
         return [
-            //
+            RelationManagers\ProjectLogsRelationManager::class,
         ];
     }
 
