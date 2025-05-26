@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -25,7 +26,6 @@ class Project extends Model
     protected $casts = [
         'deadline' => 'datetime',
     ];
-
 
     public function clientUser(): BelongsTo
     {
@@ -52,14 +52,40 @@ class Project extends Model
         }, \Carbon\CarbonInterval::hours(0));
     }
 
-    public static function getProjectDurationByUser(int $userId): string
+    public static function getProjectDurationByUser(int $userId, bool $isFreelancer = true): string
     {
-        $totalDuration = self::where('freelancer_id', $userId)
+        $totalDuration = self::where($isFreelancer ? 'freelancer_id' : 'client_id', $userId)
             ->get()
             ->reduce(function (\Carbon\CarbonInterval $total, $project) {
                 return $total->addSeconds(self::getTotalDuration($project->id)->seconds);
             }, \Carbon\CarbonInterval::hours(0));
 
         return $totalDuration->cascade()->forHumans(['short' => true, 'parts' => 2]);
+    }
+
+    public static function getMonthlyDurations(?int $userId = null): array
+    {
+        $monthlyDurations = [];
+
+        $userId = $userId ?: Auth::user()->id;
+
+        $logs = ProjectLogs::whereNotNull('end_time')
+            ->whereIn('project_id', self::where('client_id', $userId)->pluck('id'))
+            ->get();
+
+        foreach ($logs as $log) {
+            $month = $log->start_time->format('Y-m');
+            $duration = $log->duration ? \Carbon\Carbon::parse($log->duration)->secondsSinceMidnight() : 0;
+
+            if (!isset($monthlyDurations[$month])) {
+                $monthlyDurations[$month] = 0;
+            }
+
+            $monthlyDurations[$month] += $duration;
+        }
+
+        return array_map(function ($seconds) {
+            return \Carbon\CarbonInterval::seconds($seconds)->cascade()->forHumans(['short' => true, 'parts' => 2]);
+        }, $monthlyDurations);
     }
 }
